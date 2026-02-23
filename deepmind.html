@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ActCam — Zero-Shot Joint Camera and 3D Motion Control for Video Generation</title>
+<meta name="description" content="ActCam enables zero-shot joint control of acting motion and camera trajectory for video generation without additional training.">
+
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════════════
+   ActCam — Style C: DeepMind Minimal
+   ═══════════════════════════════════════════════ */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #ffffff;
+  --bg-warm: #f8f9fa;
+  --text: #202124;
+  --text-secondary: #5f6368;
+  --text-muted: #9aa0a6;
+  --accent: #1a73e8;
+  --accent-hover: #1557b0;
+  --accent-light: rgba(26, 115, 232, 0.06);
+  --accent-border: rgba(26, 115, 232, 0.25);
+  --border: #dadce0;
+  --border-strong: #dadce0;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
+  --green: #2d7d46;
+  --orange: #e37400;
+  --red: #d93025;
+  --camera-badge: #1a73e8;
+  --camera-badge-bg: rgba(26, 115, 232, 0.06);
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body { overflow-x: hidden; }
+
+/* ─── Typography ─── */
+h1, h2, h3 {
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+  line-height: 1.25;
+}
+h2 {
+  font-size: 26px;
+  font-weight: 400;
+  margin-top: 56px;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+h3 {
+  font-size: 18px;
+  font-weight: 500;
+  font-style: normal;
+  margin-top: 32px;
+  margin-bottom: 14px;
+}
+h4 {
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+p { margin-bottom: 20px; }
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s, color 0.2s;
+}
+a:hover { border-bottom-color: var(--accent); color: var(--accent-hover); }
+
+strong { font-weight: 700; color: #202124; }
+
+/* ─── Layout columns ─── */
+.l-body {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 24px;
+}
+.l-middle {
+  max-width: 880px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 24px;
+}
+.l-page {
+  max-width: 1040px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 24px;
+}
+.l-screen {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 24px;
+}
+
+/* ─── Scroll reveal ─── */
+.reveal {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-d1 { transition-delay: 0.08s; }
+.reveal-d2 { transition-delay: 0.16s; }
+.reveal-d3 { transition-delay: 0.24s; }
+
+/* ─── Navigation ─── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  background: #ffffff;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 64px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+}
+nav .logo {
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: 0;
+}
+nav .nav-links {
+  display: flex;
+  gap: 24px;
+  list-style: none;
+}
+nav .nav-links a {
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-secondary);
+  border-bottom: none;
+  transition: color 0.2s;
+}
+nav .nav-links a:hover { color: var(--text); border-bottom: none; }
+
+/* ─── Header / Hero ─── */
+.header-area {
+  padding: 120px 24px 48px;
+  text-align: center;
+}
+.header-area h1 {
+  font-size: clamp(36px, 5vw, 52px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+.header-area h1 em {
+  font-style: italic;
+}
+.header-subtitle {
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: clamp(17px, 2.2vw, 22px);
+  color: var(--text-secondary);
+  font-weight: 300;
+  margin-bottom: 28px;
+  line-height: 1.45;
+}
+
+/* Byline */
+.byline {
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 6px;
+}
+.byline a {
+  color: var(--text);
+  font-weight: 500;
+  border-bottom: none;
+}
+.byline a:hover { border-bottom: 1px solid var(--text-secondary); }
+.byline sup {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.affiliations {
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+/* Links row */
+.links-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 20px;
+  height: 36px;
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 100px;
+  background: var(--bg);
+  transition: all 0.2s;
+}
+.link-btn:hover {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.link-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+}
+
+/* ─── Section spacing ─── */
+section {
+  margin-top: 48px;
+  margin-bottom: 48px;
+}
+
+/* Section heading with rule */
+.section-rule {
+  border: none;
+  border-top: 1px solid #dadce0;
+  margin-bottom: 0;
+}
+
+/* ─── Pipeline / Teaser figure ─── */
+.figure-block {
+  margin: 36px 0;
+}
+.figure-block img {
+  width: 100%;
+  display: block;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+}
+.figure-caption {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 10px;
+  line-height: 1.55;
+}
+.figure-caption strong {
+  color: var(--text);
+}
+
+/* ─── Teaser row ─── */
+.teaser-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  background: #fff;
+}
+.teaser-input {
+  flex: 0 0 auto;
+  width: 42%;
+}
+.teaser-input img {
+  width: 100%;
+  display: block;
+}
+.teaser-arrow {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  color: var(--text-muted);
+}
+.teaser-output {
+  flex: 1;
+  min-width: 0;
+}
+.teaser-output video {
+  width: 100%;
+  display: block;
+}
+
+/* ─── Abstract ─── */
+.abstract-text {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--text);
+}
+
+/* ─── Contribution cards ─── */
+.contrib-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+.contrib-card {
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 22px 18px;
+  position: relative;
+  transition: box-shadow 0.25s, border-color 0.25s;
+}
+.contrib-card:hover {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06);
+  border-color: #dadce0;
+}
+.contrib-num {
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 44px;
+  font-weight: 400;
+  color: var(--accent);
+  opacity: 0.08;
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  line-height: 1;
+}
+.contrib-card h3 {
+  font-style: normal;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  margin: 0 0 8px;
+  color: var(--text);
+}
+.contrib-card p {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ─── Method timeline ─── */
+.method-intro {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+}
+.method-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: relative;
+  padding-left: 44px;
+}
+.method-steps::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  border-left: 2px dotted #dadce0;
+  background: none;
+}
+.method-step {
+  position: relative;
+}
+.method-step::before {
+  content: attr(data-step);
+  position: absolute;
+  left: -44px;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffffff;
+  z-index: 1;
+}
+.method-step h4 {
+  font-size: 16px;
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.method-step p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Two-phase diagram */
+.two-phase {
+  display: flex;
+  gap: 0;
+  margin-top: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.phase {
+  flex: 1;
+  padding: 20px;
+}
+.phase:first-child {
+  background: rgba(26, 115, 232, 0.04);
+  border-right: 1px solid var(--border);
+}
+.phase:last-child {
+  background: var(--bg-warm);
+}
+.phase-tag {
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.phase:first-child .phase-tag { color: var(--accent); }
+.phase:last-child .phase-tag { color: var(--orange); }
+.phase h4 {
+  font-size: 16px;
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.phase p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* ─── Results tables ─── */
+.table-wrapper {
+  overflow-x: auto;
+  margin: 16px 0;
+  border-radius: 8px;
+  border: none;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+}
+thead th {
+  padding: 12px 14px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-secondary);
+  border-bottom: 1px solid #dadce0;
+  background: #f8f9fa;
+  white-space: nowrap;
+}
+thead th:first-child { text-align: left; padding-left: 16px; }
+tbody tr { border-bottom: 1px solid var(--border); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(0,0,0,0.015); }
+tbody td {
+  padding: 10px 14px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+tbody td:first-child {
+  text-align: left;
+  padding-left: 16px;
+  color: var(--text);
+  font-weight: 500;
+}
+.row-ours {
+  background: rgba(26, 115, 232, 0.06) !important;
+}
+.row-ours td {
+  color: var(--accent) !important;
+  font-weight: 600;
+}
+td .best {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ─── User study bar chart ─── */
+.user-study-chart {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.chart-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.chart-label {
+  width: 100px;
+  flex-shrink: 0;
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: right;
+  font-weight: 500;
+}
+.chart-bars {
+  flex: 1;
+  display: flex;
+  height: 32px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f1f3f4;
+}
+.bar-ours {
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 6px 0 0 6px;
+  transition: width 1s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.bar-baseline {
+  background: #9aa0a6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  transition: width 1s cubic-bezier(0.23, 1, 0.32, 1) 0.08s;
+}
+.bar-tie {
+  background: #f1f3f4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: width 1s cubic-bezier(0.23, 1, 0.32, 1) 0.16s;
+}
+.chart-legend {
+  display: flex;
+  gap: 18px;
+  margin-top: 6px;
+  margin-left: 112px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+/* ─── Video Gallery ─── */
+.video-gallery {
+  margin-top: 24px;
+}
+.video-pair {
+  margin-bottom: 28px;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg);
+  transition: box-shadow 0.3s;
+}
+.video-pair:hover {
+  box-shadow: var(--shadow-md);
+}
+.video-pair-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dadce0;
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+}
+.video-pair-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+.camera-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(26, 115, 232, 0.06);
+  border: none;
+  border-radius: 100px;
+}
+.camera-badge svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+}
+.video-pair-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.video-cell {
+  position: relative;
+}
+.video-cell + .video-cell {
+  border-left: 1px solid var(--border);
+}
+.video-cell video {
+  width: 100%;
+  display: block;
+}
+.video-label {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+.video-label-acting {
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+}
+.video-label-output {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Zombie comparison (same acting, two cameras) */
+.video-triple {
+  margin-bottom: 28px;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg);
+  transition: box-shadow 0.3s;
+}
+.video-triple:hover { box-shadow: var(--shadow-md); }
+.video-triple-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+}
+.video-triple-content .video-cell + .video-cell {
+  border-left: 1px solid var(--border);
+}
+
+/* ─── Conditioning signal videos ─── */
+.cond-gallery {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 24px;
+}
+.cond-card {
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg);
+  transition: box-shadow 0.3s;
+}
+.cond-card:hover { box-shadow: var(--shadow-md); }
+.cond-card video {
+  width: 100%;
+  display: block;
+}
+.cond-card-caption {
+  padding: 10px 14px;
+  border-top: 1px solid #dadce0;
+  background: var(--bg-warm);
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+.cond-card-caption strong {
+  color: var(--text);
+  font-weight: 500;
+}
+.cond-featured {
+  grid-column: 1 / -1;
+  border-left: 3px solid var(--accent);
+  border-color: var(--accent-border);
+  border-left-color: var(--accent);
+}
+.cond-featured .cond-card-caption {
+  background: rgba(26, 115, 232, 0.06);
+}
+.cond-badge-intrinsic {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--orange);
+  background: rgba(227, 116, 0, 0.08);
+  border: 1px solid rgba(227, 116, 0, 0.2);
+  border-radius: 100px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.cond-signal-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  margin-bottom: 8px;
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.cond-signal-legend .legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* ─── BibTeX ─── */
+.bibtex-block {
+  background: #f8f9fa;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 16px 20px;
+  position: relative;
+  margin-top: 12px;
+}
+.bibtex-block pre {
+  font-family: 'DM Mono', Menlo, Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  overflow-x: auto;
+  white-space: pre;
+}
+.copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  color: var(--text-muted);
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.copy-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ─── Footer ─── */
+footer {
+  background: #f8f9fa;
+  padding: 32px 24px;
+  text-align: center;
+  margin-top: 60px;
+}
+footer .footer-affiliations {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-family: 'DM Sans', 'Google Sans', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+footer p {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ─── Scroll progress ─── */
+.scroll-progress {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  height: 2px;
+  background: #1a73e8;
+  z-index: 200;
+  width: 0%;
+  transition: width 0.05s;
+}
+
+/* ─── Responsive ─── */
+
+
+@media (max-width: 768px) {
+  .contrib-grid { grid-template-columns: 1fr; }
+  .two-phase { flex-direction: column; }
+  .phase:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+  .video-pair-content { grid-template-columns: 1fr; }
+  .video-cell + .video-cell { border-left: none; border-top: 1px solid var(--border); }
+  .video-triple-content { grid-template-columns: 1fr; }
+  .video-triple-content .video-cell + .video-cell { border-left: none; border-top: 1px solid var(--border); }
+  nav .nav-links { gap: 12px; }
+  nav .nav-links a { font-size: 10px; }
+  .chart-label { width: 70px; }
+  .chart-legend { margin-left: 82px; }
+  .method-steps { padding-left: 36px; }
+  .method-step::before { left: -36px; width: 26px; height: 26px; font-size: 10px; }
+  section { margin-top: 32px; margin-bottom: 32px; }
+  .cond-gallery { grid-template-columns: 1fr; }
+  .teaser-row { flex-direction: column; }
+  .teaser-input { width: 100%; }
+  .teaser-arrow { transform: rotate(90deg); padding: 4px 0; }
+}
+@media (max-width: 500px) {
+  nav .nav-links { display: none; }
+  .links-row { flex-direction: column; align-items: center; }
+  html { font-size: 16px; }
+}
+</style>
+</head>
+
+<body>
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- ─── Navigation ─── -->
+<nav>
+  <div class="logo">ActCam</div>
+  <ul class="nav-links">
+    <li><a href="#abstract">Abstract</a></li>
+    <li><a href="#method">Method</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#conditioning">Conditioning</a></li>
+    <li><a href="#videos">Videos</a></li>
+    <li><a href="#citation">Cite</a></li>
+  </ul>
+</nav>
+
+<!-- ─── Header ─── -->
+<header class="header-area">
+  <h1 class="reveal"><em>ActCam</em></h1>
+  <p class="header-subtitle reveal reveal-d1">
+    Zero-Shot Joint Camera and 3D Motion Control for Video Generation
+  </p>
+
+  <div class="byline reveal reveal-d2">
+    <a href="#">Omar El Khalifi</a><sup>1</sup>,
+    <a href="#">Thomas Rossi</a><sup>1</sup>,
+    <a href="#">Oscar Fossey</a><sup>1</sup>,
+    <a href="#">Thibault Fouque</a><sup>1</sup>,
+    <a href="#">Ulysse Mizrahi</a><sup>1</sup>,
+    <a href="#">Philip Torr</a><sup>3</sup>,
+    <a href="#">Ivan Laptev</a><sup>2</sup>,
+    <a href="#">Fabio Pizzati</a><sup>2</sup>,
+    <a href="#">Baptiste Bellot-Gurlet</a><sup>1</sup>
+  </div>
+  <div class="affiliations reveal reveal-d2">
+    <sup>1</sup>Kinetix &nbsp;&middot;&nbsp;
+    <sup>2</sup>MBZUAI &nbsp;&middot;&nbsp;
+    <sup>3</sup>University of Oxford
+  </div>
+
+  <div class="links-row reveal reveal-d3">
+    <a href="#" class="link-btn">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Paper
+    </a>
+    <a href="#" class="link-btn">
+      <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Code (soon)
+    </a>
+    <a href="#" class="link-btn">
+      <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      arXiv
+    </a>
+  </div>
+</header>
+
+<!-- ─── Teaser ─── -->
+<div class="l-page">
+  <div class="figure-block reveal">
+    <div class="teaser-row">
+      <div class="teaser-input">
+        <img src="figures/teaser-input.png" alt="ActCam inputs: acting video, first frame, and camera shots">
+      </div>
+      <div class="teaser-arrow">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 6 15 12 9 18"/></svg>
+      </div>
+      <div class="teaser-output">
+        <video muted loop playsinline preload="metadata" id="teaserVideo">
+          <source src="videos/teaser-video.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Abstract ─── -->
+<section id="abstract">
+  <div class="l-body">
+    <hr class="section-rule">
+    <h2 class="reveal">Abstract</h2>
+    <p class="abstract-text reveal">
+      For artistic applications, video generation requires fine-grained control over both performance and cinematography&mdash;i.e., the actor's motion and the camera trajectory. We present <strong>ActCam</strong>, a zero-shot method for video generation that jointly <strong>(i)</strong> transfers character motion from a driving video into a new scene and <strong>(ii)</strong> enables per-frame control of intrinsic and extrinsic camera parameters. ActCam builds on a pretrained image-to-video diffusion model that accepts conditioning in terms of scene depth and character pose. Given a source video with a moving character and a target camera motion, ActCam generates pose and depth conditions that remain <strong>geometrically consistent</strong> across frames. We then run a single sampling process with a <strong>two-phase conditioning schedule</strong>: early denoising steps condition on both pose and sparse depth to enforce scene structure, after which depth is dropped and pose-only guidance refines high-frequency details without over-constraining the generation. Compared to pose-only control and other pose+camera methods, ActCam <strong>improves camera adherence and motion fidelity</strong>, and is preferred in human evaluations&mdash;especially under large viewpoint changes.
+    </p>
+  </div>
+</section>
+
+<!-- ─── Key Contributions ─── -->
+<section>
+  <div class="l-middle">
+    <hr class="section-rule">
+    <h2 class="reveal">Key Contributions</h2>
+    <div class="contrib-grid">
+      <div class="contrib-card reveal reveal-d1">
+        <div class="contrib-num">1</div>
+        <h3>Zero-Shot Joint Control</h3>
+        <p>Joint acting-motion and camera-trajectory control in image-conditioned video generation&mdash;enabling controllable cinematography <em>without additional training</em>, outperforming finetuned approaches.</p>
+      </div>
+      <div class="contrib-card reveal reveal-d2">
+        <div class="contrib-num">2</div>
+        <h3>Camera-Aligned Conditions</h3>
+        <p>A geometry-grounded conditioning pipeline aligning motion and scene geometry to the target camera, with reference-character removal and depth alignment preventing static/dynamic interference.</p>
+      </div>
+      <div class="contrib-card reveal reveal-d3">
+        <div class="contrib-num">3</div>
+        <h3>Two-Phase Schedule</h3>
+        <p>An inference pipeline adapting conditioning to the denoising step&mdash;depth enforces structure early, then pose-only guidance refines details&mdash;preserving dynamic scene elements.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Method ─── -->
+<section id="method">
+  <div class="l-middle">
+    <hr class="section-rule">
+    <h2 class="reveal">Method</h2>
+    <p class="method-intro reveal">
+      ActCam is a pure inference-time method. No finetuning required&mdash;just carefully constructed conditioning signals fed to a pretrained backbone.
+    </p>
+
+    <div class="figure-block reveal" style="margin-bottom: 36px;">
+      <img src="figures/pipeline.png" alt="ActCam pipeline diagram">
+    </div>
+
+    <div class="method-steps reveal">
+      <div class="method-step" data-step="1">
+        <h4>Background Scene Extraction</h4>
+        <p>The reference character is inpainted out of the reference image, and a monocular depth estimator (MoGe) creates a background-only 3D mesh. This prevents static character geometry from conflicting with dynamic motion conditioning.</p>
+      </div>
+      <div class="method-step" data-step="2">
+        <h4>4D Motion Recovery</h4>
+        <p>A monocular 3D human motion estimator (GVHMR) recovers an articulated motion sequence from the acting video, providing a stable 3D signal that avoids 2D keypoint ambiguities under viewpoint changes.</p>
+      </div>
+      <div class="method-step" data-step="3">
+        <h4>Scene Transfer &amp; 3D Fitting</h4>
+        <p>The recovered motion is aligned to the background 3D mesh via a weighted affine depth transformation, ensuring geometrically consistent placement respecting character-environment contacts.</p>
+      </div>
+      <div class="method-step" data-step="4">
+        <h4>Camera-Aligned Rasterization</h4>
+        <p>Both pose and depth+pose control signals are rasterized under the target camera trajectory with depth-aware back-to-front ordering, handling self-occlusions correctly.</p>
+      </div>
+      <div class="method-step" data-step="5">
+        <h4>Two-Phase Conditioning</h4>
+        <p>Early denoising steps use depth+pose to lock scene structure and camera motion. Later steps switch to pose-only, allowing high-frequency detail refinement without propagating depth artifacts.</p>
+      </div>
+    </div>
+
+    <div class="two-phase reveal" style="margin-top: 32px;">
+      <div class="phase">
+        <div class="phase-tag">Phase 1 &middot; t &le; t<sub>stop</sub></div>
+        <h4>Depth + Pose</h4>
+        <p>Full geometric conditioning establishes 3D scene structure, camera viewpoint, and motion layout during high-noise early steps.</p>
+      </div>
+      <div class="phase">
+        <div class="phase-tag">Phase 2 &middot; t &gt; t<sub>stop</sub></div>
+        <h4>Pose Only</h4>
+        <p>Depth is dropped. Pose-only guidance refines textures, lighting, and high-frequency details without over-constraining generation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Results ─── -->
+<section id="results">
+  <div class="l-middle">
+    <hr class="section-rule">
+    <h2 class="reveal">Results</h2>
+    <p class="reveal" style="color: var(--text-secondary); margin-bottom: 28px;">
+      ActCam is evaluated on both static and moving camera benchmarks using VBench metrics, motion fidelity (MPJPE), and geometric consistency (Sampson Error), alongside a human preference study.
+    </p>
+
+    <!-- Moving Camera -->
+    <h3 class="reveal">Joint Camera &amp; Character Control</h3>
+    <div class="table-wrapper reveal">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Average &uarr;</th>
+            <th>SC &uarr;</th>
+            <th>BC &uarr;</th>
+            <th>AF &uarr;</th>
+            <th>IQ &uarr;</th>
+            <th>TC &uarr;</th>
+            <th>MS &uarr;</th>
+            <th>MPJPE &darr;</th>
+            <th>SE &darr;</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Uni3C</td>
+            <td>0.8370</td><td>0.9084</td><td><span class="best">0.9380</span></td><td>0.5688</td><td>0.6640</td><td>0.9607</td><td>0.9821</td><td>0.2121</td><td>0.5665</td>
+          </tr>
+          <tr>
+            <td>RealisDance DiT</td>
+            <td>0.8351</td><td>0.9209</td><td>0.9342</td><td>0.5417</td><td>0.6448</td><td><span class="best">0.9803</span></td><td><span class="best">0.9888</span></td><td>0.2123</td><td><span class="best">0.4528</span></td>
+          </tr>
+          <tr>
+            <td>ActCam (Ours)</td>
+            <td><span class="best">0.8497</span></td><td><span class="best">0.9212</span></td><td>0.9350</td><td><span class="best">0.5767</span></td><td><span class="best">0.7212</span></td><td>0.9571</td><td>0.9872</td><td><span class="best">0.2087</span></td><td>0.4546</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Static Camera -->
+    <h3 class="reveal">Motion Control (Static Camera)</h3>
+    <div class="table-wrapper reveal">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th><th>Average &uarr;</th><th>SC &uarr;</th><th>BC &uarr;</th><th>AF &uarr;</th><th>IQ &uarr;</th><th>TC &uarr;</th><th>MS &uarr;</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Moore-AnimateAnyone</td><td>83.78</td><td>94.65</td><td>94.90</td><td>51.56</td><td>66.34</td><td>97.16</td><td>98.07</td></tr>
+          <tr><td>HumanVid</td><td>84.68</td><td>93.69</td><td>94.94</td><td>55.58</td><td>67.45</td><td>97.87</td><td>98.52</td></tr>
+          <tr><td>MimicMotion</td><td>82.27</td><td>92.21</td><td>93.60</td><td>52.09</td><td>59.67</td><td>97.46</td><td>98.61</td></tr>
+          <tr><td>Animate-X</td><td>82.93</td><td>93.39</td><td>95.11</td><td>51.72</td><td>60.91</td><td>97.79</td><td>98.68</td></tr>
+          <tr><td>Hyper-Motion</td><td>84.04</td><td>93.58</td><td>94.97</td><td>52.97</td><td>65.52</td><td>98.19</td><td>99.01</td></tr>
+          <tr><td>UniAnimate-DiT</td><td>84.29</td><td>94.56</td><td>95.44</td><td>52.18</td><td>65.52</td><td>98.78</td><td>99.24</td></tr>
+          <tr><td>VACE</td><td>85.33</td><td>93.56</td><td>95.03</td><td>57.81</td><td>70.61</td><td>96.74</td><td>98.25</td></tr>
+          <tr><td>Wan-Animate</td><td>84.38</td><td>93.06</td><td>94.52</td><td>54.47</td><td>66.87</td><td>98.42</td><td>98.96</td></tr>
+          <tr><td>SteadyDancer</td><td>85.15</td><td>93.48</td><td>95.18</td><td>56.80</td><td>68.45</td><td>97.99</td><td>99.02</td></tr>
+          <tr class="row-ours">
+            <td>ActCam (Ours)</td><td>86.47</td><td>95.28</td><td>95.83</td><td>58.66</td><td>70.83</td><td>98.88</td><td>99.34</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- User Study -->
+    <h3 class="reveal">Human Preference Study</h3>
+    <p class="reveal" style="font-size: 15px; color: var(--text-secondary); margin-bottom: 12px;">
+      2AFC study with 17 users comparing ActCam vs. Uni3C on identical inputs. ActCam is considerably preferred across all criteria.
+    </p>
+    <div class="user-study-chart reveal" id="userStudyChart">
+      <div class="chart-row">
+        <span class="chart-label">Camera</span>
+        <div class="chart-bars">
+          <div class="bar-ours" data-width="53.1" style="width: 0%">53.1%</div>
+          <div class="bar-baseline" data-width="27.8" style="width: 0%">27.8%</div>
+          <div class="bar-tie" data-width="19.1" style="width: 0%">19.1%</div>
+        </div>
+      </div>
+      <div class="chart-row">
+        <span class="chart-label">Motion</span>
+        <div class="chart-bars">
+          <div class="bar-ours" data-width="66.9" style="width: 0%">66.9%</div>
+          <div class="bar-baseline" data-width="24.1" style="width: 0%">24.1%</div>
+          <div class="bar-tie" data-width="9.0" style="width: 0%">9.0%</div>
+        </div>
+      </div>
+      <div class="chart-row">
+        <span class="chart-label">Visual Quality</span>
+        <div class="chart-bars">
+          <div class="bar-ours" data-width="53.2" style="width: 0%">53.2%</div>
+          <div class="bar-baseline" data-width="36.7" style="width: 0%">36.7%</div>
+          <div class="bar-tie" data-width="10.1" style="width: 0%">10.1%</div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-legend reveal">
+      <div class="legend-item"><div class="legend-swatch" style="background: var(--accent);"></div> ActCam (Ours)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background: hsl(200, 30%, 60%);"></div> Uni3C</div>
+      <div class="legend-item"><div class="legend-swatch" style="background: rgba(0,0,0,0.08);"></div> Tie</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Conditioning Signal Visualization ─── -->
+<section id="conditioning">
+  <div class="l-screen">
+    <hr class="section-rule">
+    <h2 class="reveal">Conditioning Signal Visualization</h2>
+    <p class="reveal" style="color: var(--text-secondary); margin-bottom: 12px; max-width: 648px;">
+      Each video visualizes the full ActCam conditioning pipeline. The top row shows the four input signals; the bottom shows the generated output.
+    </p>
+    <div class="cond-signal-legend reveal">
+      <span><span class="legend-dot" style="background: #6c8ebf;"></span> Reference Image</span>
+      <span><span class="legend-dot" style="background: #82b366;"></span> Depth + Pose Map</span>
+      <span><span class="legend-dot" style="background: #d6b656;"></span> Pose-Only Map</span>
+      <span><span class="legend-dot" style="background: #b85450;"></span> Acting Video</span>
+    </div>
+
+    <div class="cond-gallery">
+
+      <div class="cond-card reveal" data-cond-video>
+        <video muted loop playsinline preload="metadata"><source src="videos/cond_alien-fisheye.mp4" type="video/mp4"></video>
+        <div class="cond-card-caption">          <span class="cond-badge-intrinsic">Intrinsic</span>
+        </div>
+      </div>
+
+      <div class="cond-card reveal" data-cond-video>
+        <video muted loop playsinline preload="metadata"><source src="videos/cond_fire-soldier.mp4" type="video/mp4"></video>
+      </div>
+
+      <div class="cond-card reveal" data-cond-video>
+        <video muted loop playsinline preload="metadata"><source src="videos/cond_sunset-bridge.mp4" type="video/mp4"></video>
+      </div>
+
+      <div class="cond-card reveal" data-cond-video>
+        <video muted loop playsinline preload="metadata"><source src="videos/cond_hospital-corridor.mp4" type="video/mp4"></video>
+      </div>
+
+      <div class="cond-card reveal" data-cond-video>
+        <video muted loop playsinline preload="metadata"><source src="videos/cond_alien-texas.mp4" type="video/mp4"></video>
+      </div>
+
+      <div class="cond-card reveal" data-cond-video>
+        <video muted loop playsinline preload="metadata"><source src="videos/cond_alien-businessman.mp4" type="video/mp4"></video>
+      </div>
+
+      <div class="cond-card reveal" data-cond-video>
+        <video muted loop playsinline preload="metadata"><source src="videos/cond_alien-vintage-dance.mp4" type="video/mp4"></video>
+      </div>
+
+      <div class="cond-card reveal" data-cond-video>
+        <video muted loop playsinline preload="metadata"><source src="videos/cond_cathedral-knight.mp4" type="video/mp4"></video>
+      </div>
+
+
+      <div class="cond-card cond-featured reveal" data-cond-video>
+        <video muted loop playsinline preload="metadata"><source src="videos/cond_iron-beam-vertigo.mp4" type="video/mp4"></video>
+        <div class="cond-card-caption">
+          <span class="cond-badge-intrinsic">Extrinsic + Intrinsic</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─── Video Gallery ─── -->
+<section id="videos">
+  <div class="l-screen">
+    <hr class="section-rule">
+    <h2 class="reveal">Generated Videos</h2>
+    <p class="reveal" style="color: var(--text-secondary); margin-bottom: 28px; max-width: 648px;">
+      Each pair shows the acting input (left) and ActCam's generated output (right), synchronized frame-by-frame. The camera motion preset is highlighted for each result.
+    </p>
+
+    <div class="video-gallery">
+
+      <!-- ═══ Zombie — Two cameras (showcase) ═══ -->
+      <div class="video-triple reveal">
+        <div class="video-pair-header">
+
+          <span style="display: flex; gap: 6px;">
+            <span class="camera-badge">
+              <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Arc Left
+            </span>
+            <span class="camera-badge">
+              <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Arc Right
+            </span>
+          </span>
+        </div>
+        <div class="video-triple-content" data-sync-group="zombie-dual">
+          <div class="video-cell">
+            <div class="video-label video-label-acting">Acting</div>
+            <video muted loop playsinline preload="metadata"><source src="videos/acting_zombie.mp4" type="video/mp4"></video>
+          </div>
+          <div class="video-cell">
+            <div class="video-label video-label-output">Arc Left</div>
+            <video muted loop playsinline preload="metadata"><source src="videos/output_zombie_arc-left.mp4" type="video/mp4"></video>
+          </div>
+          <div class="video-cell">
+            <div class="video-label video-label-output">Arc Right</div>
+            <video muted loop playsinline preload="metadata"><source src="videos/output_zombie_arc-right.mp4" type="video/mp4"></video>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Standard pairs ═══ -->
+
+      <div class="video-pair reveal">
+        <div class="video-pair-header">
+
+          <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Vertigo In</span>
+        </div>
+        <div class="video-pair-content" data-sync-group="alien-birthday">
+          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_alien-birthday-party.mp4" type="video/mp4"></video></div>
+          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_alien-birthday-party_vertigo-in.mp4" type="video/mp4"></video></div>
+        </div>
+      </div>
+
+      <div class="video-pair reveal">
+        <div class="video-pair-header">
+
+          <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Static Handheld</span>
+        </div>
+        <div class="video-pair-content" data-sync-group="alien-taxi">
+          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_alien-calls-taxi.mp4" type="video/mp4"></video></div>
+          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_alien-calls-taxi_static-handheld.mp4" type="video/mp4"></video></div>
+        </div>
+      </div>
+
+      <div class="video-pair reveal">
+        <div class="video-pair-header">
+
+          <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Vertigo Out</span>
+        </div>
+        <div class="video-pair-content" data-sync-group="alien-texas">
+          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_alien-in-texas.mp4" type="video/mp4"></video></div>
+          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_alien-in-texas_vertigo-out.mp4" type="video/mp4"></video></div>
+        </div>
+      </div>
+
+      <div class="video-pair reveal">
+        <div class="video-pair-header">
+
+          <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Swing Zoom</span>
+        </div>
+        <div class="video-pair-content" data-sync-group="alien-robot">
+          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_alien-robot-dance.mp4" type="video/mp4"></video></div>
+          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_alien-robot-dance_swing-zoom.mp4" type="video/mp4"></video></div>
+        </div>
+      </div>
+
+      <div class="video-pair reveal">
+        <div class="video-pair-header">
+
+          <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Swing Zoom</span>
+        </div>
+        <div class="video-pair-content" data-sync-group="monk-lev">
+          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_monk-levitating.mp4" type="video/mp4"></video></div>
+          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_monk-levitating_swing-zoom.mp4" type="video/mp4"></video></div>
+        </div>
+      </div>
+
+      <div class="video-pair reveal">
+        <div class="video-pair-header">
+
+          <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Zoom In</span>
+        </div>
+        <div class="video-pair-content" data-sync-group="zombie-film">
+          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_zombie-filming.mp4" type="video/mp4"></video></div>
+          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_zombie-filming_zoom-in.mp4" type="video/mp4"></video></div>
+        </div>
+      </div>
+
+      <div class="video-pair reveal">
+        <div class="video-pair-header">
+
+          <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Arc Right 45&deg;</span>
+        </div>
+        <div class="video-pair-content" data-sync-group="snow-kick">
+          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_snow-kick.mp4" type="video/mp4"></video></div>
+          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_snow-kick_arc-right-45.mp4" type="video/mp4"></video></div>
+        </div>
+      </div>
+
+      <div class="video-pair reveal">
+        <div class="video-pair-header">
+
+          <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Arc Right 45&deg;</span>
+        </div>
+        <div class="video-pair-content" data-sync-group="iron-beam">
+          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_iron-beam.mp4" type="video/mp4"></video></div>
+          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_iron-beam_arc-right-45.mp4" type="video/mp4"></video></div>
+        </div>
+      </div>
+
+      <div class="video-pair reveal">
+        <div class="video-pair-header">
+
+          <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Arc Right</span>
+        </div>
+        <div class="video-pair-content" data-sync-group="cathedral">
+          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_cathedral-knight.mp4" type="video/mp4"></video></div>
+          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_cathedral-knight.mp4" type="video/mp4"></video></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─── Citation ─── -->
+<section id="citation">
+  <div class="l-body">
+    <hr class="section-rule">
+    <h2 class="reveal">Citation</h2>
+    <p class="reveal" style="color: var(--text-secondary);">If you find this work useful, please cite:</p>
+    <div class="bibtex-block reveal">
+      <button class="copy-btn" onclick="copyBibtex()">Copy</button>
+      <pre id="bibtexContent">@inproceedings{elkhalifi2026actcam,
+  title     = {ActCam: Zero-Shot Joint Camera and 3D Motion
+               Control for Video Generation},
+  author    = {Omar El Khalifi and Thomas Rossi and
+               Oscar Fossey and Thibault Fouque and
+               Ulysse Mizrahi and Philip Torr and
+               Ivan Laptev and Fabio Pizzati and
+               Baptiste Bellot-Gurlet},
+  year      = {2026}
+}</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Footer ─── -->
+<footer>
+  <div class="footer-affiliations">
+    <span>Kinetix</span>
+    <span>MBZUAI</span>
+    <span>University of Oxford</span>
+  </div>
+  <p>ActCam &middot; 2026</p>
+</footer>
+
+<!-- ═══ Scripts ═══ -->
+<script>
+// ─── Scroll reveal ───
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.06, rootMargin: '0px 0px -30px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+// ─── Scroll progress ───
+window.addEventListener('scroll', () => {
+  const pct = (document.documentElement.scrollTop / (document.documentElement.scrollHeight - document.documentElement.clientHeight)) * 100;
+  document.getElementById('scrollProgress').style.width = pct + '%';
+});
+
+// ─── Animated bar chart ───
+const chartObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.querySelectorAll('[data-width]').forEach(bar => { bar.style.width = bar.dataset.width + '%'; });
+      chartObserver.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.25 });
+const chart = document.getElementById('userStudyChart');
+if (chart) chartObserver.observe(chart);
+
+// ─── Copy BibTeX ───
+function copyBibtex() {
+  navigator.clipboard.writeText(document.getElementById('bibtexContent').textContent).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+  });
+}
+
+// ─── Video sync: play/pause on visibility, keep videos in each group synchronized ───
+const syncGroups = {};
+document.querySelectorAll('[data-sync-group]').forEach(container => {
+  const group = container.dataset.syncGroup;
+  const videos = Array.from(container.querySelectorAll('video'));
+  syncGroups[group] = videos;
+});
+
+const videoObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    const container = e.target;
+    const group = container.dataset.syncGroup;
+    const videos = syncGroups[group];
+    if (!videos) return;
+
+    if (e.isIntersecting) {
+      // Reset all to start for perfect sync, then play together
+      videos.forEach(v => { v.currentTime = 0; });
+      videos.forEach(v => { v.play().catch(() => {}); });
+    } else {
+      videos.forEach(v => { v.pause(); });
+    }
+  });
+}, { threshold: 0.3 });
+
+document.querySelectorAll('[data-sync-group]').forEach(el => videoObserver.observe(el));
+
+// Periodic sync correction (drift can happen between videos)
+setInterval(() => {
+  Object.values(syncGroups).forEach(videos => {
+    if (videos.length < 2) return;
+    const ref = videos[0];
+    if (ref.paused) return;
+    for (let i = 1; i < videos.length; i++) {
+      if (Math.abs(videos[i].currentTime - ref.currentTime) > 0.15) {
+        videos[i].currentTime = ref.currentTime;
+      }
+    }
+  });
+}, 500);
+
+// ─── Teaser video: autoplay on scroll ───
+const teaserEl = document.getElementById('teaserVideo');
+if (teaserEl) {
+  const teaserObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { teaserEl.currentTime = 0; teaserEl.play().catch(() => {}); }
+      else { teaserEl.pause(); }
+    });
+  }, { threshold: 0.3 });
+  teaserObs.observe(teaserEl);
+}
+
+// ─── Conditioning signal videos: autoplay on scroll ───
+const condObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    const video = e.target.querySelector('video');
+    if (!video) return;
+    if (e.isIntersecting) {
+      video.currentTime = 0;
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  });
+}, { threshold: 0.3 });
+document.querySelectorAll('[data-cond-video]').forEach(el => condObserver.observe(el));
+</script>
+
+</body>
+</html>
