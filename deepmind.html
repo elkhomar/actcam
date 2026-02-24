@@ -861,6 +861,41 @@ footer p {
 /* ─── Responsive ─── */
 
 
+
+/* Play button overlay */
+.video-play-wrap {
+  position: relative;
+  cursor: pointer;
+}
+.video-play-wrap video {
+  width: 100%;
+  display: block;
+}
+.video-play-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.25);
+  transition: background 0.25s;
+}
+.video-play-wrap:hover .video-play-btn {
+  background: rgba(0,0,0,0.35);
+}
+.video-play-btn svg {
+  width: 56px;
+  height: 56px;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+  transition: transform 0.2s;
+}
+.video-play-wrap:hover .video-play-btn svg {
+  transform: scale(1.08);
+}
+.video-play-btn.hidden {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .contrib-grid { grid-template-columns: 1fr; }
   .two-phase { flex-direction: column; }
@@ -1177,8 +1212,7 @@ footer p {
 
       <div class="cond-card reveal" data-cond-video>
         <video muted loop playsinline preload="metadata"><source src="videos/cond_alien-fisheye.mp4" type="video/mp4"></video>
-        <div class="cond-card-caption">          <span class="cond-badge-intrinsic">Intrinsic</span>
-        </div>
+
       </div>
 
       <div class="cond-card reveal" data-cond-video>
@@ -1411,20 +1445,34 @@ if (teaserEl) {
   teaserObs.observe(teaserEl);
 }
 
-// ─── Conditioning signal videos: autoplay on scroll ───
-const condObserver = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    const video = e.target.querySelector('video');
-    if (!video) return;
-    if (e.isIntersecting) {
+// ─── Play button overlays (all videos except teaser) ───
+document.querySelectorAll('.video-pair-content video, [data-cond-video] video').forEach(video => {
+  video.preload = 'none';
+  const wrap = document.createElement('div');
+  wrap.className = 'video-play-wrap';
+  video.parentNode.insertBefore(wrap, video);
+  wrap.appendChild(video);
+
+  const btn = document.createElement('div');
+  btn.className = 'video-play-btn';
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="none"><polygon points="5,3 19,12 5,21"/></svg>';
+  wrap.appendChild(btn);
+
+  wrap.addEventListener('click', () => {
+    if (video.paused) {
       video.currentTime = 0;
       video.play().catch(() => {});
+      btn.classList.add('hidden');
     } else {
       video.pause();
+      btn.classList.remove('hidden');
     }
   });
-}, { threshold: 0.3 });
-document.querySelectorAll('[data-cond-video]').forEach(el => condObserver.observe(el));
+
+  video.addEventListener('ended', () => {
+    btn.classList.remove('hidden');
+  });
+});
 </script>
 
 </body>
