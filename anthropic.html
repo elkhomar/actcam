@@ -659,9 +659,7 @@ td .best {
   stroke-width: 2;
 }
 .video-pair-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
+  display: block;
 }
 .video-cell {
   position: relative;
@@ -669,7 +667,7 @@ td .best {
 .video-cell + .video-cell {
   border-left: 1px solid var(--border);
 }
-.video-cell video {
+.video-pair-content video {
   width: 100%;
   display: block;
 }
@@ -875,8 +873,6 @@ footer p {
   .phase:first-child { border-right: none; border-bottom: 1px solid var(--border); }
   .video-pair-content { grid-template-columns: 1fr; }
   .video-cell + .video-cell { border-left: none; border-top: 1px solid var(--border); }
-  .video-triple-content { grid-template-columns: 1fr; }
-  .video-triple-content .video-cell + .video-cell { border-left: none; border-top: 1px solid var(--border); }
   nav .nav-links { gap: 12px; }
   nav .nav-links a { font-size: 11px; }
   .chart-label { width: 70px; }
@@ -1242,137 +1238,99 @@ footer p {
 
     <div class="video-gallery">
 
-      <!-- Zombie -- Two cameras (showcase) -->
-      <div class="video-triple reveal">
+      <div class="video-pair reveal">
         <div class="video-pair-header">
-
           <span style="display: flex; gap: 6px;">
-            <span class="camera-badge">
-              <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-              Arc Left
-            </span>
-            <span class="camera-badge">
-              <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-              Arc Right
-            </span>
+            <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Arc Left</span>
+            <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Arc Right</span>
           </span>
         </div>
-        <div class="video-triple-content" data-sync-group="zombie-dual">
-          <div class="video-cell">
-            <div class="video-label video-label-acting">Acting</div>
-            <video muted loop playsinline preload="metadata"><source src="videos/acting_zombie.mp4" type="video/mp4"></video>
-          </div>
-          <div class="video-cell">
-            <div class="video-label video-label-output">Arc Left</div>
-            <video muted loop playsinline preload="metadata"><source src="videos/output_zombie_arc-left.mp4" type="video/mp4"></video>
-          </div>
-          <div class="video-cell">
-            <div class="video-label video-label-output">Arc Right</div>
-            <video muted loop playsinline preload="metadata"><source src="videos/output_zombie_arc-right.mp4" type="video/mp4"></video>
-          </div>
+        <div class="video-pair-content">
+          <video muted loop playsinline preload="metadata"><source src="videos/merged/zombie-dual.mp4" type="video/mp4"></video>
         </div>
       </div>
 
-      <!-- Standard pairs -->
-
       <div class="video-pair reveal">
         <div class="video-pair-header">
-
           <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Vertigo In</span>
         </div>
-        <div class="video-pair-content" data-sync-group="alien-birthday">
-          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_alien-birthday-party.mp4" type="video/mp4"></video></div>
-          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_alien-birthday-party_vertigo-in.mp4" type="video/mp4"></video></div>
+        <div class="video-pair-content">
+          <video muted loop playsinline preload="metadata"><source src="videos/merged/alien-birthday.mp4" type="video/mp4"></video>
         </div>
       </div>
 
       <div class="video-pair reveal">
         <div class="video-pair-header">
-
           <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Static Handheld</span>
         </div>
-        <div class="video-pair-content" data-sync-group="alien-taxi">
-          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_alien-calls-taxi.mp4" type="video/mp4"></video></div>
-          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_alien-calls-taxi_static-handheld.mp4" type="video/mp4"></video></div>
+        <div class="video-pair-content">
+          <video muted loop playsinline preload="metadata"><source src="videos/merged/alien-taxi.mp4" type="video/mp4"></video>
         </div>
       </div>
 
       <div class="video-pair reveal">
         <div class="video-pair-header">
-
           <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Vertigo Out</span>
         </div>
-        <div class="video-pair-content" data-sync-group="alien-texas">
-          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_alien-in-texas.mp4" type="video/mp4"></video></div>
-          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_alien-in-texas_vertigo-out.mp4" type="video/mp4"></video></div>
+        <div class="video-pair-content">
+          <video muted loop playsinline preload="metadata"><source src="videos/merged/alien-texas.mp4" type="video/mp4"></video>
         </div>
       </div>
 
       <div class="video-pair reveal">
         <div class="video-pair-header">
-
           <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Swing Zoom</span>
         </div>
-        <div class="video-pair-content" data-sync-group="alien-robot">
-          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_alien-robot-dance.mp4" type="video/mp4"></video></div>
-          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_alien-robot-dance_swing-zoom.mp4" type="video/mp4"></video></div>
+        <div class="video-pair-content">
+          <video muted loop playsinline preload="metadata"><source src="videos/merged/alien-robot.mp4" type="video/mp4"></video>
         </div>
       </div>
 
       <div class="video-pair reveal">
         <div class="video-pair-header">
-
           <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Swing Zoom</span>
         </div>
-        <div class="video-pair-content" data-sync-group="monk-lev">
-          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_monk-levitating.mp4" type="video/mp4"></video></div>
-          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_monk-levitating_swing-zoom.mp4" type="video/mp4"></video></div>
+        <div class="video-pair-content">
+          <video muted loop playsinline preload="metadata"><source src="videos/merged/monk-lev.mp4" type="video/mp4"></video>
         </div>
       </div>
 
       <div class="video-pair reveal">
         <div class="video-pair-header">
-
           <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Zoom In</span>
         </div>
-        <div class="video-pair-content" data-sync-group="zombie-film">
-          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_zombie-filming.mp4" type="video/mp4"></video></div>
-          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_zombie-filming_zoom-in.mp4" type="video/mp4"></video></div>
+        <div class="video-pair-content">
+          <video muted loop playsinline preload="metadata"><source src="videos/merged/zombie-film.mp4" type="video/mp4"></video>
         </div>
       </div>
 
       <div class="video-pair reveal">
         <div class="video-pair-header">
-
           <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Arc Right 45&deg;</span>
         </div>
-        <div class="video-pair-content" data-sync-group="snow-kick">
-          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_snow-kick.mp4" type="video/mp4"></video></div>
-          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_snow-kick_arc-right-45.mp4" type="video/mp4"></video></div>
+        <div class="video-pair-content">
+          <video muted loop playsinline preload="metadata"><source src="videos/merged/snow-kick.mp4" type="video/mp4"></video>
         </div>
       </div>
 
       <div class="video-pair reveal">
         <div class="video-pair-header">
-
           <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Arc Right 45&deg;</span>
         </div>
-        <div class="video-pair-content" data-sync-group="iron-beam">
-          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_iron-beam.mp4" type="video/mp4"></video></div>
-          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_iron-beam_arc-right-45.mp4" type="video/mp4"></video></div>
+        <div class="video-pair-content">
+          <video muted loop playsinline preload="metadata"><source src="videos/merged/iron-beam.mp4" type="video/mp4"></video>
         </div>
       </div>
 
       <div class="video-pair reveal">
         <div class="video-pair-header">
-
           <span class="camera-badge"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Arc Right</span>
         </div>
-        <div class="video-pair-content" data-sync-group="cathedral">
-          <div class="video-cell"><div class="video-label video-label-acting">Acting</div><video muted loop playsinline preload="metadata"><source src="videos/acting_cathedral-knight.mp4" type="video/mp4"></video></div>
-          <div class="video-cell"><div class="video-label video-label-output">Output</div><video muted loop playsinline preload="metadata"><source src="videos/output_cathedral-knight.mp4" type="video/mp4"></video></div>
+        <div class="video-pair-content">
+          <video muted loop playsinline preload="metadata"><source src="videos/merged/cathedral.mp4" type="video/mp4"></video>
         </div>
       </div>
+
 
     </div>
   </div>
@@ -1445,46 +1403,7 @@ function copyBibtex() {
   });
 }
 
-// --- Video sync: play/pause on visibility, keep videos in each group synchronized ---
-const syncGroups = {};
-document.querySelectorAll('[data-sync-group]').forEach(container => {
-  const group = container.dataset.syncGroup;
-  const videos = Array.from(container.querySelectorAll('video'));
-  syncGroups[group] = videos;
-});
 
-const videoObserver = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    const container = e.target;
-    const group = container.dataset.syncGroup;
-    const videos = syncGroups[group];
-    if (!videos) return;
-
-    if (e.isIntersecting) {
-      // Reset all to start for perfect sync, then play together
-      videos.forEach(v => { v.currentTime = 0; });
-      videos.forEach(v => { v.play().catch(() => {}); });
-    } else {
-      videos.forEach(v => { v.pause(); });
-    }
-  });
-}, { threshold: 0.3 });
-
-document.querySelectorAll('[data-sync-group]').forEach(el => videoObserver.observe(el));
-
-// Periodic sync correction (drift can happen between videos)
-setInterval(() => {
-  Object.values(syncGroups).forEach(videos => {
-    if (videos.length < 2) return;
-    const ref = videos[0];
-    if (ref.paused) return;
-    for (let i = 1; i < videos.length; i++) {
-      if (Math.abs(videos[i].currentTime - ref.currentTime) > 0.15) {
-        videos[i].currentTime = ref.currentTime;
-      }
-    }
-  });
-}, 500);
 
 // --- Teaser video: autoplay on scroll ---
 const teaserEl = document.getElementById('teaserVideo');
